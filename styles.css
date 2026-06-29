@@ -997,6 +997,10 @@
       line-height: 1.35;
     }
 
+    .detail-close {
+      display: none;
+    }
+
     @media (max-width: 1050px) {
       .app {
         grid-template-columns: 1fr;
@@ -1043,5 +1047,295 @@
 
       .tree-canvas {
         width: 900px;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+      }
+
+      body.detail-open {
+        overflow: hidden;
+      }
+
+      .app {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto minmax(0, 1fr);
+        gap: 10px;
+        min-height: 100vh;
+        height: auto;
+        padding: 10px;
+        overflow: visible;
+      }
+
+      header {
+        min-height: 0;
+        padding: 14px;
+        gap: 10px;
+        border-radius: 8px;
+      }
+
+      header::before,
+      header::after {
+        opacity: 0.45;
+      }
+
+      .title h1 {
+        font-size: 32px;
+      }
+
+      .title p {
+        max-width: none;
+        font-size: 13px;
+      }
+
+      .view-toggle {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .view-toggle button {
+        min-height: 40px;
+        padding: 9px 8px;
+      }
+
+      .view-toggle .utility-button {
+        grid-column: 1 / -1;
+      }
+
+      .zoom-controls {
+        display: none;
+      }
+
+      aside.panel {
+        padding: 10px;
+        max-height: 260px;
+      }
+
+      aside.panel .legend + .legend {
+        display: none;
+      }
+
+      .filters {
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+
+      .filters button {
+        min-height: 38px;
+        padding: 8px;
+      }
+
+      .node-results {
+        max-height: 128px;
+      }
+
+      .map {
+        min-height: 0;
+        padding: 10px;
+        overflow: visible;
+      }
+
+      .mode-note {
+        margin-bottom: 10px;
+        font-size: 12px;
+      }
+
+      .canvas-scale {
+        width: 100% !important;
+        height: auto !important;
+        transform: none;
+      }
+
+      .tree-canvas {
+        width: 100% !important;
+        height: auto !important;
+        min-height: 0;
+      }
+
+      svg.links,
+      .map-progress {
+        display: none;
+      }
+
+      .mobile-node-list,
+      .mobile-timeline-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .mobile-node-card,
+      .mobile-timeline-card {
+        width: 100%;
+        border: 1px solid color-mix(in srgb, var(--branch-color), white 52%);
+        border-left: 6px solid var(--branch-color);
+        border-radius: 12px;
+        padding: 12px;
+        color: var(--ink);
+        background:
+          linear-gradient(135deg, color-mix(in srgb, var(--branch-color), white 88%), rgba(255,255,255,0.96) 42%),
+          #fff;
+        box-shadow: 0 12px 24px rgba(5, 24, 17, 0.14);
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .mobile-node-card.available {
+        box-shadow: 0 12px 24px rgba(5, 24, 17, 0.18), 0 0 0 2px color-mix(in srgb, var(--branch-color), transparent 70%);
+      }
+
+      .mobile-node-card.completed {
+        opacity: 0.92;
+      }
+
+      .mobile-node-card.active,
+      .mobile-timeline-card.active {
+        outline: 2px solid color-mix(in srgb, var(--branch-color), white 20%);
+      }
+
+      .mobile-card-meta {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 8px;
+      }
+
+      .mobile-card-meta b,
+      .mobile-card-meta i,
+      .mobile-card-meta em {
+        border-radius: 999px;
+        padding: 3px 7px;
+        font-size: 11px;
+        font-style: normal;
+        font-weight: 800;
+      }
+
+      .mobile-card-meta b {
+        color: #fff;
+        background: var(--branch-color);
+      }
+
+      .mobile-card-meta i {
+        color: color-mix(in srgb, var(--branch-color), black 24%);
+        background: rgba(255,255,255,0.66);
+      }
+
+      .mobile-card-meta em {
+        margin-left: auto;
+        color: var(--ink);
+        background: rgba(255,255,255,0.76);
+      }
+
+      .mobile-node-card strong {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 20px;
+        line-height: 1.12;
+      }
+
+      .mobile-node-card span:not(.mobile-card-meta),
+      .mobile-timeline-card span {
+        display: block;
+        color: #3d4b45;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      .mobile-node-card small {
+        display: inline-flex;
+        margin-top: 10px;
+        border-radius: 999px;
+        padding: 5px 8px;
+        color: #fff;
+        background: var(--branch-color);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      .mobile-decade {
+        display: grid;
+        gap: 8px;
+      }
+
+      .mobile-decade h3 {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        margin: 0;
+        padding: 8px 10px;
+        border-radius: 8px;
+        color: #fff;
+        background: rgba(5, 24, 17, 0.78);
+        backdrop-filter: blur(10px);
+        font-size: 14px;
+      }
+
+      .mobile-timeline-card b {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 15px;
+        line-height: 1.25;
+      }
+
+      .card {
+        display: none;
+      }
+
+      body.detail-open .card {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 30;
+        display: block;
+        max-height: 78vh;
+        padding: 16px 14px 22px;
+        overflow: auto;
+        border-radius: 16px 16px 0 0;
+        border: 1px solid rgba(255,255,255,0.72);
+        box-shadow: 0 -20px 44px rgba(5, 24, 17, 0.34);
+      }
+
+      body.detail-open::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 29;
+        background: rgba(3, 18, 13, 0.42);
+        backdrop-filter: blur(3px);
+      }
+
+      .detail-close {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: inline-flex;
+        float: right;
+        margin: 0 0 8px 8px;
+        border: 0;
+        border-radius: 999px;
+        padding: 7px 10px;
+        color: #fff;
+        background: var(--branch-color);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: 900;
+      }
+
+      .wiki-header-image {
+        max-height: 132px;
+      }
+
+      .stat-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline {
+        display: none;
       }
     }

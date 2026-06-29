@@ -11,6 +11,8 @@
     let dragPositions = JSON.parse(localStorage.getItem(dragKey) || "{}");
     let currentLayout = null;
     let linkFrame = 0;
+    let detailOpen = false;
+    const mobileQuery = window.matchMedia("(max-width: 760px)");
 
     const tree = document.getElementById("tree");
     const linksSvg = document.getElementById("links");
@@ -35,6 +37,15 @@
     let zoom = Number(localStorage.getItem(zoomKey) || "0.6");
     let syncingScrubber = false;
 
+    function isMobileMode() {
+      return mobileQuery.matches;
+    }
+
+    function setDetailOpen(open) {
+      detailOpen = open;
+      document.body.classList.toggle("detail-open", detailOpen);
+    }
+
     function setZoom(nextZoom) {
       zoom = Math.max(0.55, Math.min(1.35, nextZoom));
       canvasScale.style.setProperty("--zoom", zoom);
@@ -53,6 +64,10 @@
 
     function updateMapScrubber() {
       if (!mapScrubber) return;
+      if (isMobileMode()) {
+        mapProgress.hidden = true;
+        return;
+      }
       const maxScroll = Math.max(0, map.scrollWidth - map.clientWidth);
       mapScrubber.max = String(Math.max(1, Math.round(maxScroll)));
       mapScrubber.value = String(Math.min(maxScroll, Math.round(map.scrollLeft)));
@@ -142,6 +157,7 @@
       selectedId = id;
       discovered.add(id);
       revealNextFrom(id);
+      if (isMobileMode()) setDetailOpen(true);
       saveProgress();
       render();
     }
@@ -259,7 +275,8 @@
       if (!nodes.some(node => node.id === id)) return;
       selectedId = id;
       selectedBranch = "全部";
-      currentView = "research";
+      if (!isMobileMode()) currentView = "research";
+      setDetailOpen(true);
       render();
     }
 
@@ -393,7 +410,11 @@
     }
 
     function renderNodes() {
-      tree.querySelectorAll(".node, .tick, .lane-label, .lane-line, .decade").forEach(node => node.remove());
+      tree.querySelectorAll(".node, .tick, .lane-label, .lane-line, .decade, .mobile-node-list, .mobile-timeline-list").forEach(node => node.remove());
+      if (isMobileMode()) {
+        renderMobileNodes();
+        return;
+      }
       modeNote.textContent = currentView === "research"
         ? `研发模式：精简后的 ${researchNodeIds.size} 节点科技树，只显示已研究和当前可研究卡片；每个节点按真实年份选择一个主上游，时间参考只表示先后，不代表严格因果。`
         : "长时间轴：按年代横向浏览全部事件；半透明卡片表示尚未在研发模式中解锁。";
@@ -443,6 +464,109 @@
         });
         bindNodeDrag(el, node);
         tree.appendChild(el);
+      });
+    }
+
+    function nodeStatus(node) {
+      if (isUnlocked(node.id)) return "completed";
+      if (isAvailable(node.id)) return "available";
+      return "locked";
+    }
+
+    function nodeStatusLabel(status) {
+      return status === "completed" ? "已完成" : status === "available" ? "可研" : "未解锁";
+    }
+
+    function renderMobileNodes() {
+      currentLayout = null;
+      linksSvg.innerHTML = "";
+      tree.style.width = "100%";
+      tree.style.height = "auto";
+      canvasScale.style.width = "100%";
+      canvasScale.style.height = "auto";
+      canvasScale.style.setProperty("--zoom", 1);
+      mapProgress.hidden = true;
+      map.classList.toggle("timeline-only", currentView === "timeline");
+      modeNote.textContent = currentView === "timeline"
+        ? "移动端时间轴：按年代纵向浏览全部节点；点击卡片打开 wiki。"
+        : "移动端研发：只显示已出现和可研究节点；点击可研卡片直接完成研究，点击其他卡片查看 wiki。";
+
+      if (currentView === "timeline") {
+        renderMobileTimeline();
+        return;
+      }
+
+      const visibleIds = visibleNodeIds();
+      const availableNodes = nodes
+        .filter(node => visibleIds.has(node.id) && visible(node))
+        .sort((a, b) => {
+          const rank = { available: 0, completed: 1, locked: 2 };
+          return rank[nodeStatus(a)] - rank[nodeStatus(b)]
+            || a.year - b.year
+            || a.title.localeCompare(b.title, "zh-CN");
+        });
+
+      tree.querySelectorAll(".mobile-node-list, .mobile-timeline-list").forEach(node => node.remove());
+      if (!tree.contains(linksSvg)) tree.prepend(linksSvg);
+      tree.insertAdjacentHTML("beforeend", `<div class="mobile-node-list">
+        ${availableNodes.map(node => {
+          const status = nodeStatus(node);
+          const nextCount = researchOutgoingOf(node.id).filter(nextId => !unlocked.has(nextId)).length;
+          return `<button class="mobile-node-card ${status} ${node.id === selectedId ? "active" : ""}" data-id="${node.id}" style="--branch-color:${branchColor(node.branch)}">
+            <span class="mobile-card-meta"><b>${node.year}</b><i>${node.branch}</i><em>${nodeStatusLabel(status)}</em></span>
+            <strong>${node.title}</strong>
+            <span>${node.summary}</span>
+            <small>${status === "available" ? "点击研究" : nextCount ? `影响 ${nextCount} 个后续节点` : "点击查看详情"}</small>
+          </button>`;
+        }).join("")}
+      </div>`);
+
+      tree.querySelectorAll(".mobile-node-card").forEach(card => {
+        card.addEventListener("click", () => {
+          const id = card.dataset.id;
+          if (isAvailable(id)) researchNode(id);
+          else {
+            selectedId = id;
+            setDetailOpen(true);
+            render();
+          }
+        });
+      });
+    }
+
+    function renderMobileTimeline() {
+      const grouped = new Map();
+      nodes
+        .filter(visible)
+        .sort((a, b) => a.year - b.year || a.title.localeCompare(b.title, "zh-CN"))
+        .forEach(node => {
+          const decade = Math.floor(node.year / 10) * 10;
+          if (!grouped.has(decade)) grouped.set(decade, []);
+          grouped.get(decade).push(node);
+        });
+      tree.querySelectorAll(".mobile-node-list, .mobile-timeline-list").forEach(node => node.remove());
+      if (!tree.contains(linksSvg)) tree.prepend(linksSvg);
+      tree.insertAdjacentHTML("beforeend", `<div class="mobile-timeline-list">
+        ${[...grouped.entries()].map(([decade, decadeNodes]) => `
+          <section class="mobile-decade">
+            <h3>${decade}s</h3>
+            ${decadeNodes.map(node => {
+              const status = nodeStatus(node);
+              return `<button class="mobile-timeline-card ${status} ${node.id === selectedId ? "active" : ""}" data-id="${node.id}" style="--branch-color:${branchColor(node.branch)}">
+                <b>${node.year} · ${node.title}</b>
+                <span>${node.branch}｜${node.summary}</span>
+              </button>`;
+            }).join("")}
+          </section>
+        `).join("")}
+      </div>`);
+
+      tree.querySelectorAll(".mobile-timeline-card").forEach(card => {
+        card.addEventListener("click", () => {
+          selectedId = card.dataset.id;
+          setDetailOpen(true);
+          render();
+        });
       });
     }
 
@@ -523,6 +647,7 @@
         const branchNodes = nodes.filter(node => node.branch === selectedBranch).sort((a, b) => a.year - b.year);
         detail.style.setProperty("--branch-color", branch.color);
         detail.innerHTML = `
+          <button class="detail-close" type="button" aria-label="关闭详情">关闭</button>
           <img class="wiki-image wiki-header-image" src="${branchHeaderFor(selectedBranch)}" alt="${selectedBranch}插画头图" onerror="this.onerror=null;this.style.display='none';">
           <p class="wiki-caption">${branchHeaderCaptionFor(selectedBranch)}</p>
           <div class="card-top">
@@ -547,6 +672,7 @@
           </div>
         `;
         attachCardClicks();
+        detail.querySelector(".detail-close")?.addEventListener("click", () => setDetailOpen(false));
         return;
       }
 
@@ -567,6 +693,7 @@
         .filter(([, to]) => to);
       detail.style.setProperty("--branch-color", branchColor(node.branch));
       detail.innerHTML = `
+        <button class="detail-close" type="button" aria-label="关闭详情">关闭</button>
         <img class="wiki-image wiki-header-image" src="${wikiHeader}" alt="${node.branch}插画头图" onerror="this.onerror=null;this.style.display='none';">
         <p class="wiki-caption">${wikiHeaderCaption}</p>
         <div class="card-top">
@@ -620,6 +747,7 @@
           </div>` : ""}
       `;
       attachCardClicks();
+      detail.querySelector(".detail-close")?.addEventListener("click", () => setDetailOpen(false));
       detail.querySelectorAll("[data-research]").forEach(button => {
         button.addEventListener("click", () => researchNode(button.dataset.research));
       });
@@ -638,6 +766,7 @@
           selectedId = button.dataset.id;
           const node = nodes.find(item => item.id === selectedId);
           if (selectedBranch !== "全部" && node.branch !== selectedBranch) selectedBranch = "全部";
+          if (isMobileMode()) setDetailOpen(true);
           render();
         });
       });
@@ -677,6 +806,7 @@
       currentView = "research";
       saveProgress();
       saveDragPositions();
+      setDetailOpen(false);
       render();
     });
 
@@ -696,6 +826,11 @@
     });
 
     window.addEventListener("resize", updateMapScrubber);
+    mobileQuery.addEventListener("change", () => {
+      if (!isMobileMode()) setDetailOpen(false);
+      setZoom(zoom);
+      render();
+    });
 
     setZoom(zoom);
     render();
